@@ -40,11 +40,22 @@ public class Client {
         }
     }
 
+    public static void delete(Registry registry) throws RemoteException, NotBoundException {
+        ServerInterface server = (ServerInterface) registry.lookup("ServerImp");
+        // Read in pre-populated data
+        String getData = PropsHandler.getInstance().getProperties("DEL_REQUEST_DATA");
+        String[] items = getData.split("\\s*,\\s*");
+        for (String item : items) {
+            server.delete(item);
+        }
+    }
+
     public static void main(String[] args) {
         try {
             Registry registry = LocateRegistry.getRegistry(hostName, portNum);
 //            put(registry);
             get(registry);
+            delete(registry);
 
         } catch (RemoteException | NotBoundException e) {
             e.printStackTrace();

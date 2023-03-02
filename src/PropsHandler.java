@@ -1,3 +1,4 @@
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -7,6 +8,7 @@ import java.util.Set;
 public class PropsHandler {
     private final Properties props = new Properties();
     private final Properties propsServer = new Properties();
+    String outputPath = "/Users/jasmine/IdeaProjects/CS6650-Project2/src/map.properties";
 
     /**
      * Read in pre-populated data set
@@ -73,7 +75,12 @@ public class PropsHandler {
     }
 
     public void writeToFile() throws IOException {
-        String outputPath = "/Users/jasmine/IdeaProjects/CS6650-Project2/src/map.properties";
+        FileOutputStream outputStream = new FileOutputStream(outputPath);
+        propsServer.store(outputStream, null);
+    }
+
+    public void deleteFromFile(String key) throws IOException {
+        propsServer.remove(key);
         FileOutputStream outputStream = new FileOutputStream(outputPath);
         propsServer.store(outputStream, null);
     }

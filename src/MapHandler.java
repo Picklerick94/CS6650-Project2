@@ -37,4 +37,9 @@ public class MapHandler {
         PropsHandler.getInstance().setPropsServer(key, value);
         PropsHandler.getInstance().writeToFile();
     }
+
+    public void deleteFromMap(String key) throws IOException {
+        map.remove(key);
+        PropsHandler.getInstance().deleteFromFile(key);
+    }
 }

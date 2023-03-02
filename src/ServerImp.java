@@ -34,10 +34,9 @@ public class ServerImp extends UnicastRemoteObject implements ServerInterface, R
 
     /**
      * Mutual exclusion to control the access of multiple threads to shared resource.
-     * Only one thread can ever execute at a time.
+     * Only one thread can execute at a critical session.
      * @param key key from key-value store
      * @param value value from key-value store
-     * @throws RemoteException
      */
     public synchronized void addToMap(String key, String value) throws IOException {
         MapHandler mapHandler = new MapHandler();
@@ -48,6 +47,11 @@ public class ServerImp extends UnicastRemoteObject implements ServerInterface, R
         LOGGER.info("Current map size: " + map.size());
     }
 
+    /**
+     * Get the value of KV pair according to key
+     * @param key key sent from client
+     * @throws RemoteException error occurred in mapHandler
+     */
     public void getFromMap(String key) throws RemoteException {
         MapHandler mapHandler = new MapHandler();
         HashMap<String, String> map = mapHandler.getMap();
@@ -55,6 +59,23 @@ public class ServerImp extends UnicastRemoteObject implements ServerInterface, R
         if (!map.isEmpty()) {
             if (map.containsKey(key)) {
                 LOGGER.info("Retrieved KV store: " + "Key " + key + " " + "Value " + map.get(key));
+            } else {
+                String failureMsg = "Key-value pair not found";
+                LOGGER.error(failureMsg);
+            }
+        } else {
+            LOGGER.error("KV store is empty");
+        }
+    }
+
+    public synchronized void deleteFromMap(String key) throws IOException {
+        MapHandler mapHandler = new MapHandler();
+        HashMap<String, String> map = mapHandler.getMap();
+
+        if (!map.isEmpty()) {
+            if (map.containsKey(key)) {
+                mapHandler.deleteFromMap(key);
+                LOGGER.info("Delete successful, new size after deletion: "+ map.size());
             } else {
                 String failureMsg = "Key-value pair not found";
                 LOGGER.error(failureMsg);
@@ -80,7 +101,7 @@ public class ServerImp extends UnicastRemoteObject implements ServerInterface, R
      * Process put request
      * @param key hashmap key
      * @param value hashmap value
-     * @throws RemoteException
+     * @throws RemoteException RPC call exception
      */
     @Override
     public void put(String key, String value) throws RemoteException {
@@ -94,7 +115,7 @@ public class ServerImp extends UnicastRemoteObject implements ServerInterface, R
      * Process get request
      * @param key hashmap key
      * @return hashmap value
-     * @throws RemoteException
+     * @throws RemoteException RPC call exception
      */
     @Override
     public String get(String key) throws RemoteException {
@@ -108,7 +129,7 @@ public class ServerImp extends UnicastRemoteObject implements ServerInterface, R
     /**
      * Process delete request
      * @param key hashmap key
-     * @throws RemoteException
+     * @throws RemoteException RPC call exception
      */
     @Override
     public void delete(String key) throws RemoteException {
@@ -122,10 +143,12 @@ public class ServerImp extends UnicastRemoteObject implements ServerInterface, R
         LOGGER.info("Run new thread " + Thread.currentThread().getName());
 
         try {
-            if (this.requestType != "" && this.requestType.equalsIgnoreCase("PUT")) {
+            if (!this.requestType.equals("") && this.requestType.equalsIgnoreCase("PUT")) {
                 addToMap(this.key, this.value);
-            } else if (this.requestType != "" && this.requestType.equalsIgnoreCase("GET")) {
+            } else if (!this.requestType.equals("") && this.requestType.equalsIgnoreCase("GET")) {
                 getFromMap(this.key);
+            } else if (!this.requestType.equals("") && requestType.equalsIgnoreCase("DELETE")) {
+                deleteFromMap(this.key);
             }
         } catch (IOException e) {
             e.printStackTrace();
