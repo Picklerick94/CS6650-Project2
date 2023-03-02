@@ -1,3 +1,4 @@
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Properties;
@@ -5,15 +6,18 @@ import java.util.Set;
 
 public class PropsHandler {
     private final Properties props = new Properties();
+    private final Properties propsServer = new Properties();
 
     /**
      * Read in pre-populated data set
      */
     private PropsHandler() {
         InputStream in = this.getClass().getClassLoader().getResourceAsStream("rpc.properties");
+        InputStream inServer = this.getClass().getClassLoader().getResourceAsStream("map.properties");
 
         try {
             props.load(in);
+            propsServer.load((inServer));
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -43,12 +47,16 @@ public class PropsHandler {
         return props.getProperty(key);
     }
 
+    public String getPropertiesServer(String key) {
+        return propsServer.getProperty(key);
+    }
+
     /**
      * Get all the properties
      * @return all the values
      */
     public Set<String> getAllValues() {
-        return props.stringPropertyNames();
+        return propsServer.stringPropertyNames();
     }
 
     /**
@@ -58,5 +66,15 @@ public class PropsHandler {
      */
     public boolean containsKey(String key) {
         return props.containsKey(key);
+    }
+
+    public void setPropsServer(String key, String value) {
+        propsServer.setProperty(key, value);
+    }
+
+    public void writeToFile() throws IOException {
+        String outputPath = "/Users/jasmine/IdeaProjects/CS6650-Project2/src/map.properties";
+        FileOutputStream outputStream = new FileOutputStream(outputPath);
+        propsServer.store(outputStream, null);
     }
 }

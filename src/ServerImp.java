@@ -1,6 +1,7 @@
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import java.io.IOException;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
@@ -32,33 +33,43 @@ public class ServerImp extends UnicastRemoteObject implements ServerInterface, R
     }
 
     /**
-     * Control the access of multiple threads to shared resource
+     * Mutual exclusion to control the access of multiple threads to shared resource.
+     * Only one thread can ever execute at a time.
      * @param key key from key-value store
      * @param value value from key-value store
      * @throws RemoteException
      */
-    public synchronized void addToMap(String key, String value) throws RemoteException {
-        LOGGER.info("Add KV store to map");
+    public synchronized void addToMap(String key, String value) throws IOException {
         MapHandler mapHandler = new MapHandler();
-        HashMap<String, String> map = mapHandler.readMap();
+        HashMap<String, String> map = mapHandler.getMap();
 
-        if (map != null) {
-            LOGGER.info("MAP IS NOT EMPTY");
-            mapHandler.writeToMap(key, value, map);
+        mapHandler.writeToMap(key, value);
+
+        LOGGER.info("Current map size: " + map.size());
+    }
+
+    public void getFromMap(String key) throws RemoteException {
+        MapHandler mapHandler = new MapHandler();
+        HashMap<String, String> map = mapHandler.getMap();
+
+        if (!map.isEmpty()) {
+            if (map.containsKey(key)) {
+                LOGGER.info("Retrieved KV store: " + "Key " + key + " " + "Value " + map.get(key));
+            } else {
+                String failureMsg = "Key-value pair not found";
+                LOGGER.error(failureMsg);
+            }
         } else {
-            LOGGER.info("MAP IS EMPTY");
-            HashMap<String, String> newMap = mapHandler.readMap();
-            mapHandler.writeToMap(key, value, newMap);
+            LOGGER.error("KV store is empty");
         }
-
-        LOGGER.info("Put successful");
     }
 
     /**
      * Create a new thread
      */
     public void start() {
-        LOGGER.info("Create new thread");
+        LOGGER.info("New thread created");
+
         if (thread == null) {
             thread = new Thread(this);
             thread.start();
@@ -73,7 +84,8 @@ public class ServerImp extends UnicastRemoteObject implements ServerInterface, R
      */
     @Override
     public void put(String key, String value) throws RemoteException {
-        LOGGER.info("Key is:" + key + " Value is:" + value);
+        LOGGER.info("PUT request: Key is " + key + " Value is " + value);
+
         ServerImp serverThread = new ServerImp("PUT", key, value);
         serverThread.start();
     }
@@ -86,7 +98,8 @@ public class ServerImp extends UnicastRemoteObject implements ServerInterface, R
      */
     @Override
     public String get(String key) throws RemoteException {
-        LOGGER.info("key is: " + key);
+        LOGGER.info("GET request: Key is " + key);
+
         ServerImp serverThread = new ServerImp("GET", key, "");
         serverThread.start();
         return this.returnVal;
@@ -106,14 +119,15 @@ public class ServerImp extends UnicastRemoteObject implements ServerInterface, R
 
     @Override
     public void run() {
-        LOGGER.info("Run New thread " + Thread.currentThread().getName() + " started");
-        LOGGER.debug("requestType: " + requestType + " msgKey" + this.key);
+        LOGGER.info("Run new thread " + Thread.currentThread().getName());
 
         try {
             if (this.requestType != "" && this.requestType.equalsIgnoreCase("PUT")) {
                 addToMap(this.key, this.value);
+            } else if (this.requestType != "" && this.requestType.equalsIgnoreCase("GET")) {
+                getFromMap(this.key);
             }
-        } catch (RemoteException e) {
+        } catch (IOException e) {
             e.printStackTrace();
         }
     }
@@ -121,9 +135,11 @@ public class ServerImp extends UnicastRemoteObject implements ServerInterface, R
     public static void main(String[] args) {
         try{
             ServerInterface serverObj = new ServerImp();
+
             // Change to dynamic!!
             Registry registry = LocateRegistry.createRegistry(8080);
             registry.bind("ServerImp", serverObj);
+
             LOGGER.info("Object bound successful");
         } catch(Exception e){
             e.printStackTrace();

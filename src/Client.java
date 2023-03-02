@@ -11,20 +11,43 @@ import java.rmi.registry.Registry;
  */
 public class Client {
     private static Logger LOGGER = LogManager.getLogger(Client.class.getName());
+    // Change this part to dynamic input!!
+    private static String hostName = "localhost";
+    private static int portNum = 8080;
 
-    public static void main(String[] args) throws RemoteException, NotBoundException {
-        // Change this part to dynamic input
-        String hostName = "localhost";
-        int portNum = 8080;
-//
-//        try {
+    private static void put(Registry registry) throws RemoteException, NotBoundException {
+        ServerInterface server = (ServerInterface) registry.lookup("ServerImp");
+        // Read in pre-populated data
+        String putData = PropsHandler.getInstance().getProperties("PUT_REQUEST_DATA");
+        String[] items = putData.split("\\s*\\|\\s*");
+
+        // 5 PUT requests
+        for (String item : items) {
+            String key = item.substring(0, item.indexOf(","));
+            String value = item.substring(item.indexOf(",") + 1);
+            server.put(key, value);
+        }
+    }
+
+    public static void get(Registry registry) throws RemoteException, NotBoundException {
+        ServerInterface server = (ServerInterface) registry.lookup("ServerImp");
+        // Read in pre-populated data
+        String getData = PropsHandler.getInstance().getProperties("GET_REQUEST_DATA");
+        String[] items = getData.split("\\s*,\\s*");
+
+        for (String item : items) {
+            server.get(item);
+        }
+    }
+
+    public static void main(String[] args) {
+        try {
             Registry registry = LocateRegistry.getRegistry(hostName, portNum);
-            ServerInterface server = (ServerInterface) registry.lookup("ServerImp");
-            LOGGER.info("Send put request");
-            server.put("101", "1");
-            LOGGER.info("Finished put request");
-//        } catch (RemoteException e) {
-//            e.printStackTrace();
-//        }
+//            put(registry);
+            get(registry);
+
+        } catch (RemoteException | NotBoundException e) {
+            e.printStackTrace();
+        }
     }
 }
